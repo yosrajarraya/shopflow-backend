@@ -16,10 +16,7 @@ public class CorsConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Origines autorisées
- configuration.setAllowedOrigins(Arrays.asList(
-    "http://localhost:4200",
-    "https://shopflow-frontend-mdaf.vercel.app"
-));
+configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         
         // Méthodes HTTP autorisées
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
