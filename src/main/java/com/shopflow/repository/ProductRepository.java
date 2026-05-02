@@ -14,6 +14,8 @@ import java.util.List;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
+    long countByActifTrue();
+
     // Trouver les produits actifs paginés
     Page<Product> findByActifTrue(Pageable pageable);
 

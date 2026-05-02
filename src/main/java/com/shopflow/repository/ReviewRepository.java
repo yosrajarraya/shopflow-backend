@@ -11,6 +11,9 @@ import java.util.List;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    @Query("SELECT COALESCE(AVG(r.note), 0) FROM Review r WHERE r.approuve = true")
+    Double calculerNoteMoyenneGlobale();
+
     // Avis approuvés d'un produit
     List<Review> findByProductIdAndApprouveTrue(Long productId);
 

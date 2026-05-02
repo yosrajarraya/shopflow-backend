@@ -8,6 +8,7 @@ import com.shopflow.entity.Product;
 import com.shopflow.entity.User;
 import com.shopflow.exception.BusinessException;
 import com.shopflow.exception.ResourceNotFoundException;
+import com.shopflow.enums.Role;
 import com.shopflow.repository.CategoryRepository;
 import com.shopflow.repository.ProductRepository;
 import com.shopflow.repository.ReviewRepository;
@@ -20,8 +21,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -148,6 +151,18 @@ public class ProductService {
                 .stream()
                 .map(this::convertirEnResponse)
                 .collect(Collectors.toList());
+    }
+
+    // Statistiques publiques pour la page d'accueil
+    public Map<String, Object> statistiquesAccueil() {
+        Map<String, Object> stats = new HashMap<>();
+
+        stats.put("totalProduits", productRepository.countByActifTrue());
+        stats.put("totalVendeurs", userRepository.countByRoleAndActifTrue(Role.SELLER));
+        stats.put("totalClients", userRepository.countByRoleAndActifTrue(Role.CUSTOMER));
+        stats.put("noteMoyenne", reviewRepository.calculerNoteMoyenneGlobale());
+
+        return stats;
     }
 
         // Produits du vendeur connecté (paginé)

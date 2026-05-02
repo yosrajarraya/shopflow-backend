@@ -11,6 +11,8 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    long countByRoleAndActifTrue(Role role);
+
     // Trouver un utilisateur par email (pour login)
     Optional<User> findByEmail(String email);
 

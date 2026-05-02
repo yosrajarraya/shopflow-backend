@@ -59,6 +59,13 @@ public class ProductController {
         return ResponseEntity.ok(productService.topVentes());
     }
 
+    // GET /api/products/stats — statistiques publiques pour la page d'accueil
+    @GetMapping("/stats")
+    @Operation(summary = "Statistiques publiques de la marketplace")
+    public ResponseEntity<java.util.Map<String, Object>> statistiquesAccueil() {
+        return ResponseEntity.ok(productService.statistiquesAccueil());
+    }
+
     // GET /api/products/my — produits du vendeur connecté
     @GetMapping("/my")
     @PreAuthorize("hasRole('SELLER')")
