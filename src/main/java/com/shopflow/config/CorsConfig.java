@@ -16,12 +16,7 @@ public class CorsConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Origines autorisées
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:4200",      // Frontend Angular en développement
-            "http://localhost:3000",      // Alternative Angular
-            "http://127.0.0.1:4200",
-            "http://127.0.0.1:3000"
-        ));
+    configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         
         // Méthodes HTTP autorisées
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
