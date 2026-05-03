@@ -1,24 +1,27 @@
 package com.shopflow.dto.request;
 
-import com.shopflow.enums.CouponType;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.*;
 import lombok.Data;
-
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 public class CouponRequest {
-
     @NotBlank(message = "Le code est obligatoire")
     private String code;
 
-    @NotNull(message = "Le type est obligatoire")
-    private CouponType type;
+    @NotBlank(message = "Le type est obligatoire")
+    private String type; // PERCENT or FIXED
 
-    @NotNull(message = "La valeur est obligatoire")
+    @NotNull @Positive
     private Double valeur;
 
-    private LocalDateTime dateExpiration;
+    // Accepte "yyyy-MM-dd" depuis le frontend (input type="date")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate dateExpiration;
+
+    @Positive
     private Integer usagesMax = 100;
+
+    private boolean actif = true;
 }

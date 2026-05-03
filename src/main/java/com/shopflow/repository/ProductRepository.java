@@ -41,4 +41,17 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     // Produits avec filtre de prix
     Page<Product> findByActifTrueAndPrixBetween(Double prixMin, Double prixMax, Pageable pageable);
+
+    // Filtre combiné: catégorie + prix min/max + promo
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN p.categories c WHERE p.actif = true " +
+           "AND (:categoryId IS NULL OR c.id = :categoryId) " +
+           "AND (:prixMin IS NULL OR p.prix >= :prixMin) " +
+           "AND (:prixMax IS NULL OR p.prix <= :prixMax) " +
+           "AND (:promoOnly = false OR p.prixPromo IS NOT NULL)")
+    Page<Product> filtrerProduits(
+            @Param("categoryId") Long categoryId,
+            @Param("prixMin") Double prixMin,
+            @Param("prixMax") Double prixMax,
+            @Param("promoOnly") boolean promoOnly,
+            Pageable pageable);
 }

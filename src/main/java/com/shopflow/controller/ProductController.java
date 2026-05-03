@@ -30,10 +30,18 @@ public class ProductController {
 
     // GET /api/products — liste paginée (public)
     @GetMapping
-    @Operation(summary = "Lister tous les produits actifs (paginé)")
+    @Operation(summary = "Lister tous les produits actifs (paginé) avec filtres optionnels")
     public ResponseEntity<Page<ProductResponse>> listerProduits(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Double prixMin,
+            @RequestParam(required = false) Double prixMax,
+            @RequestParam(required = false, defaultValue = "false") boolean promo,
             @PageableDefault(size = 12, sort = "dateCreation") Pageable pageable) {
-        return ResponseEntity.ok(productService.listerProduits(pageable));
+        // Si aucun filtre, retourner tous les produits actifs
+        if (categoryId == null && prixMin == null && prixMax == null && !promo) {
+            return ResponseEntity.ok(productService.listerProduits(pageable));
+        }
+        return ResponseEntity.ok(productService.filtrerProduits(categoryId, prixMin, prixMax, promo, pageable));
     }
 
     // GET /api/products/{id} — détail produit (public)

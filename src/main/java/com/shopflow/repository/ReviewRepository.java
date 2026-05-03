@@ -17,6 +17,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     // Avis approuvés d'un produit
     List<Review> findByProductIdAndApprouveTrue(Long productId);
 
+    // Tous les avis d'un produit (approuvés + en attente), triés par date
+    List<Review> findByProductIdOrderByDateCreationDesc(Long productId);
+
     // Vérifier si un client a déjà noté un produit
     boolean existsByCustomerIdAndProductId(Long customerId, Long productId);
 
@@ -29,4 +32,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // Tous les avis pour les produits d'un vendeur
     List<Review> findByProductSellerId(Long sellerId);
+
+    List<Review> findAllByOrderByDateCreationDesc();
+
+    List<Review> findByApprouveFalseOrderByDateCreationDesc();
 }

@@ -4,7 +4,7 @@ import com.shopflow.entity.User;
 import com.shopflow.exception.BusinessException;
 import com.shopflow.repository.OrderRepository;
 import com.shopflow.repository.ProductRepository;
-import com.shopflow.service.ProductService;
+// import com.shopflow.service.ProductService;
 import com.shopflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -107,6 +107,11 @@ public class DashboardService {
                         ligne.put("quantite", l.getQuantite());
                         ligne.put("prixUnitaire", l.getPrixUnitaire());
                         ligne.put("sousTotal", l.getPrixUnitaire() * l.getQuantite());
+                        // Image du produit (première image disponible)
+                        String image = (l.getProduct().getImages() != null && !l.getProduct().getImages().isEmpty())
+                                ? l.getProduct().getImages().get(0)
+                                : null;
+                        ligne.put("productImage", image);
                         return ligne;
                 }).toList();
                 item.put("lignes", lignes);

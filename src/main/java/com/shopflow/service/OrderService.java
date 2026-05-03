@@ -24,9 +24,11 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final CartRepository cartRepository;
-    private final AddressRepository addressRepository;
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
+    private final CouponRepository couponRepository;
     private final UserRepository userRepository;
+    private final AddressRepository addressRepository;
     private final CartService cartService;
 
     // Passer une commande depuis le panier
@@ -45,7 +47,11 @@ public class OrderService {
         // Vérification finale du stock pour chaque article
         for (CartItem item : cart.getLignes()) {
             Product product = item.getProduct();
-            if (product.getStock() < item.getQuantite()) {
+            if (item.getVariant() != null) {
+                if (item.getVariant().getStockSupplementaire() < item.getQuantite()) {
+                    throw new BusinessException("Stock variante insuffisant pour: " + product.getNom());
+                }
+            } else if (product.getStock() < item.getQuantite()) {
                 throw new BusinessException("Stock insuffisant pour: " + product.getNom()
                         + " (disponible: " + product.getStock() + ")");
             }
@@ -57,25 +63,35 @@ public class OrderService {
         double fraisLivraison = panierResponse.getFraisLivraison();
         double totalTTC = panierResponse.getTotalTTC();
 
+        String adresseLivraison;
+        if (request.getAddressId() != null) {
+            // Utiliser une adresse enregistrée
+            adresseLivraison = addressRepository.findById(request.getAddressId())
+                    .map(a -> a.getRue() + ", " + a.getVille() + " " + a.getCodePostal() + ", " + a.getPays())
+                    .orElseThrow(() -> new BusinessException("Adresse introuvable"));
+        } else if (request.getAdresseLivraison() != null && !request.getAdresseLivraison().isBlank()) {
+            adresseLivraison = request.getAdresseLivraison();
+        } else {
+            throw new BusinessException("Veuillez fournir une adresse de livraison");
+        }
+
         // Créer la commande
         Order order = Order.builder()
                 .customer(customer)
                 .numeroCommande(genererNumeroCommande())
-                .adresseLivraison(request.getAdresseLivraison())
+                .adresseLivraison(adresseLivraison)
                 .notes(request.getNotes())
                 .sousTotal(sousTotal)
                 .fraisLivraison(fraisLivraison)
                 .totalTTC(totalTTC)
                 .build();
 
-        // Créer les lignes de commande et déduire le stock
+        // Créer les lignes de commande — SANS déduire le stock (le stock sera déduit à l'acceptation du vendeur)
         List<OrderItem> lignes = cart.getLignes().stream().map(cartItem -> {
             Product product = cartItem.getProduct();
 
-            // Déduire le stock
-            product.setStock(product.getStock() - cartItem.getQuantite());
-            product.setNombreVentes(product.getNombreVentes() + cartItem.getQuantite());
-            productRepository.save(product);
+            // NE PAS déduire le stock ici — seulement à l'acceptation vendeur
+            // NE PAS incrémenter nombreVentes ici
 
             double prixUnitaire = product.getPrixPromo() != null
                     ? product.getPrixPromo() : product.getPrix();
@@ -94,6 +110,13 @@ public class OrderService {
 
         order.setLignes(lignes);
         orderRepository.save(order);
+
+        if (cart.getCodeCoupon() != null) {
+            couponRepository.findByCode(cart.getCodeCoupon()).ifPresent(coupon -> {
+                coupon.setUsagesActuels(coupon.getUsagesActuels() + 1);
+                couponRepository.save(coupon);
+            });
+        }
 
         // Vider le panier après la commande
         cart.getLignes().clear();
@@ -189,15 +212,29 @@ public class OrderService {
 
         String normalizedAction = action == null ? "" : action.trim().toUpperCase();
         if ("ACCEPT".equals(normalizedAction)) {
-            order.setStatut(OrderStatus.PROCESSING);
-        } else if ("REFUSE".equals(normalizedAction)) {
-            // Refus = annulation de la commande + remise du stock
+            // Acceptation → déduire le stock maintenant
             order.getLignes().forEach(item -> {
                 Product product = item.getProduct();
-                product.setStock(product.getStock() + item.getQuantite());
-                product.setNombreVentes(product.getNombreVentes() - item.getQuantite());
+                if (item.getVariant() != null) {
+                    ProductVariant variant = item.getVariant();
+                    if (variant.getStockSupplementaire() < item.getQuantite()) {
+                        throw new BusinessException("Stock variante insuffisant pour: " + product.getNom());
+                    }
+                    variant.setStockSupplementaire(variant.getStockSupplementaire() - item.getQuantite());
+                    productVariantRepository.save(variant);
+                } else {
+                    if (product.getStock() < item.getQuantite()) {
+                        throw new BusinessException("Stock insuffisant pour: " + product.getNom()
+                                + " (disponible: " + product.getStock() + ")");
+                    }
+                    product.setStock(product.getStock() - item.getQuantite());
+                }
+                product.setNombreVentes(product.getNombreVentes() + item.getQuantite());
                 productRepository.save(product);
             });
+            order.setStatut(OrderStatus.PROCESSING);
+        } else if ("REFUSE".equals(normalizedAction)) {
+            // Refus → stock non touché (il n'avait pas été déduit)
             order.setStatut(OrderStatus.CANCELLED);
         } else {
             throw new BusinessException("Action invalide. Utilisez ACCEPT ou REFUSE");
@@ -225,13 +262,9 @@ public class OrderService {
             throw new BusinessException("Cette commande ne peut plus être annulée (statut: " + order.getStatut() + ")");
         }
 
-        // Remettre le stock
-        order.getLignes().forEach(item -> {
-            Product product = item.getProduct();
-            product.setStock(product.getStock() + item.getQuantite());
-            product.setNombreVentes(product.getNombreVentes() - item.getQuantite());
-            productRepository.save(product);
-        });
+        // Stock non touché car il n'a été déduit qu'à l'acceptation vendeur (PROCESSING)
+        // Si la commande est PENDING ou PAID, le vendeur n'a pas encore accepté → stock intact
+        // Si la commande est PROCESSING ou plus, l'annulation n'est plus possible (géré ci-dessus)
 
         order.setStatut(OrderStatus.CANCELLED);
         orderRepository.save(order);

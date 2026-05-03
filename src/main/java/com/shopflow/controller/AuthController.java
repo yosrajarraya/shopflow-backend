@@ -1,7 +1,9 @@
 package com.shopflow.controller;
 
+import com.shopflow.dto.request.ForgotPasswordRequest;
 import com.shopflow.dto.request.LoginRequest;
 import com.shopflow.dto.request.RegisterRequest;
+import com.shopflow.dto.request.ResetPasswordRequest;
 import com.shopflow.dto.response.AuthResponse;
 import com.shopflow.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,5 +58,22 @@ public class AuthController {
     public ResponseEntity<String> deconnecter() {
         // Avec JWT stateless, la déconnexion se fait côté client en supprimant le token
         return ResponseEntity.ok("Déconnexion réussie");
+    }
+
+    // POST /api/auth/forgot-password — générer un token de réinitialisation
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Demander une réinitialisation du mot de passe")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        String token = authService.demanderReinitialisationMotDePasse(request.getEmail());
+        // En production: envoyer le token par email. Ici, on le renvoie pour la simulation.
+        return ResponseEntity.ok(token);
+    }
+
+    // POST /api/auth/reset-password — réinitialiser le mot de passe via token
+    @PostMapping("/reset-password")
+    @Operation(summary = "Réinitialiser le mot de passe avec un token")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.reinitialiserMotDePasse(request.getToken(), request.getNouveauMotDePasse());
+        return ResponseEntity.ok("Mot de passe réinitialisé");
     }
 }

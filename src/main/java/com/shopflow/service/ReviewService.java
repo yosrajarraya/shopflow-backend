@@ -71,21 +71,29 @@ public class ReviewService {
                 .order(order)
                 .note(request.getNote())
                 .commentaire(request.getCommentaire())
+                .approuve(true)  // Visible immédiatement, l'admin peut désapprouver ensuite
                 .build();
-
-        // Publier automatiquement l'avis (visible immédiatement)
-        review.setApprouve(true);
 
         reviewRepository.save(review);
         return convertirEnResponse(review);
     }
 
-    // Voir les avis d'un produit
+    // Voir les avis d'un produit (tous — approuvés et en attente)
     public List<ReviewResponse> voirAvisProduit(Long productId) {
-        return reviewRepository.findByProductIdAndApprouveTrue(productId)
+        return reviewRepository.findByProductIdOrderByDateCreationDesc(productId)
                 .stream()
                 .map(this::convertirEnResponse)
                 .collect(Collectors.toList());
+    }
+
+    // Désapprouver un avis (admin — masquer sans supprimer)
+    @Transactional
+    public ReviewResponse desapprouverAvis(Long id) {
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Avis", id));
+        review.setApprouve(false);
+        reviewRepository.save(review);
+        return convertirEnResponse(review);
     }
 
     // Approuver un avis (admin)
@@ -105,6 +113,30 @@ public class ReviewService {
 
         List<Review> reviews = reviewRepository.findByProductSellerId(seller.getId());
         return reviews.stream().map(this::convertirEnResponse).collect(Collectors.toList());
+    }
+
+    // Admin: lister tous les avis
+    public List<ReviewResponse> listerTousAvis() {
+        return reviewRepository.findAllByOrderByDateCreationDesc()
+                .stream()
+                .map(this::convertirEnResponse)
+                .collect(Collectors.toList());
+    }
+
+    // Admin: lister les avis en attente de modération
+    public List<ReviewResponse> listerAvisEnAttente() {
+        return reviewRepository.findByApprouveFalseOrderByDateCreationDesc()
+                .stream()
+                .map(this::convertirEnResponse)
+                .collect(Collectors.toList());
+    }
+
+    // Admin: rejeter/supprimer un avis
+    @Transactional
+    public void rejeterAvis(Long id) {
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Avis", id));
+        reviewRepository.delete(review);
     }
 
     private ReviewResponse convertirEnResponse(Review r) {

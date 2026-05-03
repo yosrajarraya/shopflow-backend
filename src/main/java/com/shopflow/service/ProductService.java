@@ -44,6 +44,12 @@ public class ProductService {
                 .map(this::convertirEnResponse);
     }
 
+    // Lister avec filtres (catégorie, prix, promo)
+    public Page<ProductResponse> filtrerProduits(Long categoryId, Double prixMin, Double prixMax, boolean promoOnly, Pageable pageable) {
+        return productRepository.filtrerProduits(categoryId, prixMin, prixMax, promoOnly, pageable)
+                .map(this::convertirEnResponse);
+    }
+
     // Voir le détail d'un produit
     public ProductResponse voirProduit(Long id) {
         Product product = productRepository.findById(id)
@@ -224,9 +230,8 @@ public class ProductService {
                 .collect(Collectors.toList());
         response.setVariantes(variantes);
 
-        // Ajouter les avis approuvés
+        // Ajouter les avis (tous — approuvés et en attente de modération)
         List<ReviewResponse> avis = p.getAvis().stream()
-                .filter(r -> r.isApprouve())
                 .map(r -> ReviewResponse.builder()
                         .id(r.getId())
                         .customerId(r.getCustomer().getId())

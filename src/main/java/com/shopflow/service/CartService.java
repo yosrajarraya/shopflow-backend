@@ -23,6 +23,7 @@ public class CartService {
 
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
     private final CouponRepository couponRepository;
     private final UserRepository userRepository;
 
@@ -48,9 +49,20 @@ public class CartService {
             throw new BusinessException("Ce produit n'est plus disponible");
         }
 
-        // Vérifier le stock
-        if (product.getStock() < request.getQuantite()) {
-            throw new BusinessException("Stock insuffisant. Disponible: " + product.getStock());
+        ProductVariant variant = null;
+        if (request.getVariantId() != null) {
+            variant = productVariantRepository.findById(request.getVariantId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Variante", request.getVariantId()));
+            if (!variant.getProduct().getId().equals(product.getId())) {
+                throw new BusinessException("Cette variante n'appartient pas au produit sélectionné");
+            }
+            if (variant.getStockSupplementaire() < request.getQuantite()) {
+                throw new BusinessException("Stock variante insuffisant. Disponible: " + variant.getStockSupplementaire());
+            }
+        } else {
+            if (product.getStock() < request.getQuantite()) {
+                throw new BusinessException("Stock insuffisant. Disponible: " + product.getStock());
+            }
         }
 
         // Vérifier si l'article existe déjà dans le panier
@@ -64,7 +76,11 @@ public class CartService {
         if (itemExistant != null) {
             // Mettre à jour la quantité
             int nouvelleQuantite = itemExistant.getQuantite() + request.getQuantite();
-            if (product.getStock() < nouvelleQuantite) {
+            if (itemExistant.getVariant() != null) {
+                if (itemExistant.getVariant().getStockSupplementaire() < nouvelleQuantite) {
+                    throw new BusinessException("Stock variante insuffisant pour cette quantité");
+                }
+            } else if (product.getStock() < nouvelleQuantite) {
                 throw new BusinessException("Stock insuffisant pour cette quantité");
             }
             itemExistant.setQuantite(nouvelleQuantite);
@@ -73,6 +89,7 @@ public class CartService {
             CartItem newItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
+                    .variant(variant)
                     .quantite(request.getQuantite())
                     .build();
 
@@ -97,8 +114,11 @@ public class CartService {
         if (quantite <= 0) {
             cart.getLignes().remove(item);
         } else {
-            // Vérifier le stock
-            if (item.getProduct().getStock() < quantite) {
+            if (item.getVariant() != null) {
+                if (item.getVariant().getStockSupplementaire() < quantite) {
+                    throw new BusinessException("Stock variante insuffisant");
+                }
+            } else if (item.getProduct().getStock() < quantite) {
                 throw new BusinessException("Stock insuffisant");
             }
             item.setQuantite(quantite);
