@@ -10,7 +10,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
+//chercher l’utilisateur dans la base de données
+//“Qui est cet utilisateur et quels sont ses rôles ?”
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {

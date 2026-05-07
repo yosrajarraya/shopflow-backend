@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-
+//vérifier le token JWT dans chaque requête
 @Component
 @RequiredArgsConstructor
 @Slf4j

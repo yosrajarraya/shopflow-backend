@@ -5,6 +5,7 @@ import com.shopflow.dto.response.ProductResponse;
 import com.shopflow.dto.response.ReviewResponse;
 import com.shopflow.entity.Category;
 import com.shopflow.entity.Product;
+import com.shopflow.entity.SellerProfile;
 import com.shopflow.entity.User;
 import com.shopflow.exception.BusinessException;
 import com.shopflow.exception.ResourceNotFoundException;
@@ -39,18 +40,21 @@ public class ProductService {
     private final ReviewRepository reviewRepository;
 
     // Lister tous les produits actifs (paginé)
+    @Transactional(readOnly = true)
     public Page<ProductResponse> listerProduits(Pageable pageable) {
         return productRepository.findByActifTrue(pageable)
                 .map(this::convertirEnResponse);
     }
 
     // Lister avec filtres (catégorie, prix, promo)
+    @Transactional(readOnly = true)
     public Page<ProductResponse> filtrerProduits(Long categoryId, Double prixMin, Double prixMax, boolean promoOnly, Pageable pageable) {
         return productRepository.filtrerProduits(categoryId, prixMin, prixMax, promoOnly, pageable)
                 .map(this::convertirEnResponse);
     }
 
     // Voir le détail d'un produit
+    @Transactional(readOnly = true)
     public ProductResponse voirProduit(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produit", id));
@@ -58,6 +62,7 @@ public class ProductService {
     }
 
     // Recherche plein texte
+    @Transactional(readOnly = true)
     public Page<ProductResponse> rechercher(String query, Pageable pageable) {
         return productRepository.rechercherProduits(query, pageable)
                 .map(this::convertirEnResponse);
@@ -147,11 +152,13 @@ public class ProductService {
     }
 
     // Produits en promotion
+    @Transactional(readOnly = true)
     public Page<ProductResponse> voirPromos(Pageable pageable) {
         return productRepository.findPromos(pageable).map(this::convertirEnResponse);
     }
 
     // Top 10 meilleures ventes
+    @Transactional(readOnly = true)
     public List<ProductResponse> topVentes() {
         return productRepository.findTop10ByActifTrueOrderByNombreVentesDesc()
                 .stream()
@@ -171,8 +178,19 @@ public class ProductService {
         return stats;
     }
 
-        // Produits du vendeur connecté (paginé)
-        public Page<ProductResponse> listerMesProduits(String emailVendeur, Pageable pageable) {
+    // Helper: accès sécurisé au nom de boutique (évite LazyInitializationException)
+    private String getSafeSellerBoutique(Product p) {
+        try {
+            SellerProfile profile = p.getSeller().getSellerProfile();
+            return profile != null ? profile.getNomBoutique() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // Produits du vendeur connecté (paginé)
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> listerMesProduits(String emailVendeur, Pageable pageable) {
         User vendeur = userRepository.findByEmail(emailVendeur)
             .orElseThrow(() -> new BusinessException("Vendeur non trouvé"));
 
@@ -190,6 +208,16 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public ProductResponse convertirEnResponse(Product p) {
+        String sellerNom = null;
+        String sellerBoutique = null;
+        Long sellerId = null;
+
+        if (p.getSeller() != null) {
+            sellerId = p.getSeller().getId();
+            sellerNom = p.getSeller().getPrenom() + " " + p.getSeller().getNom();
+            sellerBoutique = getSafeSellerBoutique(p);
+        }
+
         return ProductResponse.builder()
                 .id(p.getId())
                 .nom(p.getNom())
@@ -201,15 +229,14 @@ public class ProductService {
                 .actif(p.isActif())
                 .dateCreation(p.getDateCreation())
                 .nombreVentes(p.getNombreVentes())
-                .sellerId(p.getSeller().getId())
-                .sellerNom(p.getSeller().getPrenom() + " " + p.getSeller().getNom())
-                .sellerBoutique(p.getSeller().getSellerProfile() != null
-                        ? p.getSeller().getSellerProfile().getNomBoutique() : null)
+                .sellerId(sellerId)
+                .sellerNom(sellerNom)
+                .sellerBoutique(sellerBoutique)
                 .images(p.getImages())
-                .categories(p.getCategories().stream()
-                        .map(c -> new com.shopflow.dto.response.CategoryResponse(
-                                c.getId(), c.getNom(), c.getDescription(), null, null))
-                        .collect(Collectors.toSet()))
+                .categories(p.getCategories() == null ? Set.of() : p.getCategories().stream()
+                    .map(c -> new com.shopflow.dto.response.CategoryResponse(
+                        c.getId(), c.getNom(), c.getDescription(), null, null))
+                    .collect(Collectors.toSet()))
                 .build();
     }
 
@@ -219,7 +246,7 @@ public class ProductService {
         ProductResponse response = convertirEnResponse(p);
 
         // Ajouter les variantes
-        List<ProductResponse.VariantResponse> variantes = p.getVariantes().stream()
+        List<ProductResponse.VariantResponse> variantes = p.getVariantes() == null ? List.of() : p.getVariantes().stream()
                 .map(v -> ProductResponse.VariantResponse.builder()
                         .id(v.getId())
                         .attribut(v.getAttribut())
@@ -231,7 +258,7 @@ public class ProductService {
         response.setVariantes(variantes);
 
         // Ajouter les avis (tous — approuvés et en attente de modération)
-        List<ReviewResponse> avis = p.getAvis().stream()
+        List<ReviewResponse> avis = p.getAvis() == null ? List.of() : p.getAvis().stream()
                 .map(r -> ReviewResponse.builder()
                         .id(r.getId())
                         .customerId(r.getCustomer().getId())

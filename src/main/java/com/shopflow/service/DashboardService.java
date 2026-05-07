@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -56,24 +57,6 @@ public class DashboardService {
         stats.put("commandesEnAttente", orderRepository.compterCommandesEnAttente(vendeur.getId()));
         stats.put("totalProduits", productRepository.findBySellerId(
                 vendeur.getId(), PageRequest.of(0, 1)).getTotalElements());
-
-        // Produits avec stock faible (< 5)
-        var produitsStockFaible = productRepository
-                .findBySellerId(vendeur.getId(), PageRequest.of(0, 100))
-                .stream()
-                .filter(p -> p.getStock() < 5)
-                                .map(p -> {
-                                        Map<String, Object> item = new HashMap<>();
-                                        item.put("id", p.getId());
-                                        item.put("nom", p.getNom());
-                                        item.put("stock", p.getStock());
-                                        item.put("prix", p.getPrix());
-                                        item.put("prixPromo", p.getPrixPromo());
-                                        return item;
-                                })
-                .toList();
-        // frontend expects key "alertesStock"
-        stats.put("alertesStock", produitsStockFaible);
 
         // Revenu du mois pour le vendeur (dernier 30 jours)
         java.time.LocalDateTime since = java.time.LocalDateTime.now().minusDays(30);
@@ -143,5 +126,20 @@ public class DashboardService {
                 .toList());
 
         return stats;
+    }
+
+    // Ventes par produit vs stock (pour le chart combo)
+    public List<Map<String, Object>> getProductSalesVsStock(int limit) {
+        return productRepository
+                .findAllByActifTrueOrderByNombreVentesDesc(PageRequest.of(0, limit))
+                .stream()
+                .map(p -> {
+                        Map<String, Object> item = new HashMap<>();
+                        item.put("nom", p.getNom().length() > 20 ? p.getNom().substring(0, 20) + "..." : p.getNom());
+                        item.put("nombreVentes", p.getNombreVentes() != null ? p.getNombreVentes() : 0);
+                        item.put("stock", p.getStock() != null ? p.getStock() : 0);
+                        return item;
+                })
+                .toList();
     }
 }

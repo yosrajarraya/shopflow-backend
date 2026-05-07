@@ -133,11 +133,13 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Commande", id));
 
         // Vérifier que c'est la commande du bon utilisateur (ou admin/seller)
-        User user = userRepository.findByEmail(email).orElseThrow();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé"));
         boolean estAdmin = user.getRole().name().equals("ADMIN");
         boolean estProprietaire = order.getCustomer().getEmail().equals(email);
+        boolean estVendeurDeLaCommande = estCommandeDuVendeur(order, email);
 
-        if (!estAdmin && !estProprietaire) {
+        if (!estAdmin && !estProprietaire && !estVendeurDeLaCommande) {
             throw new BusinessException("Accès refusé à cette commande");
         }
 

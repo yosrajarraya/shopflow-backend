@@ -1,6 +1,6 @@
 package com.shopflow.exception;
 
-// Exception pour les erreurs métier (400)
+//Cette classe sert à gérer les erreurs de logique métier 400
 public class BusinessException extends RuntimeException {
 
     public BusinessException(String message) {

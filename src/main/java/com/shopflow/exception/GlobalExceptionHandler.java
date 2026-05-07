@@ -1,5 +1,6 @@
 package com.shopflow.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -14,7 +15,9 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+// intercepte toutes les erreurs du backend
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     record ErrorResponse(int status, String message, LocalDateTime timestamp) {}
@@ -73,10 +76,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    // Toute autre exception -> 500
+    // Toute autre exception -> 500 (avec log du vrai message)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) {
+        log.error("Erreur interne non gérée: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse(500, "Erreur interne du serveur", LocalDateTime.now()));
+                .body(new ErrorResponse(500, ex.getMessage(), LocalDateTime.now()));
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -17,25 +18,31 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     long countByActifTrue();
 
     // Trouver les produits actifs paginés
+    @EntityGraph(attributePaths = {"seller", "categories"})
     Page<Product> findByActifTrue(Pageable pageable);
 
     // Produits d'un vendeur
+    @EntityGraph(attributePaths = {"seller", "categories"})
     Page<Product> findBySellerId(Long sellerId, Pageable pageable);
 
     // Recherche plein texte sur nom ou description
+    @EntityGraph(attributePaths = {"seller", "categories"})
     @Query("SELECT p FROM Product p WHERE p.actif = true AND " +
            "(LOWER(p.nom) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%')))")
     Page<Product> rechercherProduits(@Param("query") String query, Pageable pageable);
 
     // Produits en promotion
+    @EntityGraph(attributePaths = {"seller", "categories"})
     @Query("SELECT p FROM Product p WHERE p.actif = true AND p.prixPromo IS NOT NULL")
     Page<Product> findPromos(Pageable pageable);
 
     // Top 10 meilleures ventes
+    @EntityGraph(attributePaths = {"seller", "categories"})
     List<Product> findTop10ByActifTrueOrderByNombreVentesDesc();
 
     // Produits par catégorie
+    @EntityGraph(attributePaths = {"seller", "categories"})
     @Query("SELECT p FROM Product p JOIN p.categories c WHERE c.id = :categoryId AND p.actif = true")
     Page<Product> findByCategoryId(@Param("categoryId") Long categoryId, Pageable pageable);
 
@@ -43,6 +50,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Page<Product> findByActifTrueAndPrixBetween(Double prixMin, Double prixMax, Pageable pageable);
 
     // Filtre combiné: catégorie + prix min/max + promo
+       @EntityGraph(attributePaths = {"seller", "categories"})
     @Query("SELECT DISTINCT p FROM Product p LEFT JOIN p.categories c WHERE p.actif = true " +
            "AND (:categoryId IS NULL OR c.id = :categoryId) " +
            "AND (:prixMin IS NULL OR p.prix >= :prixMin) " +
@@ -54,4 +62,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             @Param("prixMax") Double prixMax,
             @Param("promoOnly") boolean promoOnly,
             Pageable pageable);
+
+    // Produits actifs triés par ventes (nombreVentes DESC)
+    @EntityGraph(attributePaths = {"seller", "categories"})
+    Page<Product> findAllByActifTrueOrderByNombreVentesDesc(Pageable pageable);
 }

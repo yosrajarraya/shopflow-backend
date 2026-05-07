@@ -49,7 +49,7 @@ public class User {
     private List<Address> adresses = new ArrayList<>();
 
     // Un vendeur a un profil boutique
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private SellerProfile sellerProfile;
 
     // Un client a un panier

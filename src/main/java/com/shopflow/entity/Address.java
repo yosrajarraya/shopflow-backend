@@ -21,7 +21,6 @@ public class Address {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
-
     private String rue;
     private String ville;
     private String codePostal;

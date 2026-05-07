@@ -1,6 +1,7 @@
 package com.shopflow.dto.response;
 
 import com.shopflow.enums.OrderStatus;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +24,7 @@ public class OrderResponse {
     private Double sousTotal;
     private Double fraisLivraison;
     private Double totalTTC;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dateCommande;
     private boolean isNew;
 

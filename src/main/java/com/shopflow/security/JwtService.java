@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-
+//responsable de la génération et validation des tokens JWT
 @Service
 @Slf4j
 public class JwtService {

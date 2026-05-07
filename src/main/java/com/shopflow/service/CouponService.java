@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,6 +24,7 @@ public class CouponService {
     private final CouponRepository couponRepository;
 
     public List<CouponResponse> listerCoupons() {
+        //streampermet de traiter une liste de données de façon simple et rapide
         return couponRepository.findAll().stream()
                 .map(this::convertirEnResponse)
                 .collect(Collectors.toList());

@@ -11,9 +11,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/dashboard")
@@ -48,5 +50,14 @@ public class DashboardController {
     public ResponseEntity<Map<String, Object>> dashboardCustomer(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(dashboardService.dashboardCustomer(userDetails.getUsername()));
+    }
+
+    // GET /api/dashboard/product-sales-vs-stock — ventes vs stock pour le chart combo
+    @GetMapping("/product-sales-vs-stock")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Chart combo : ventes par produit vs stock")
+    public ResponseEntity<List<Map<String, Object>>> getProductSalesVsStock(
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(dashboardService.getProductSalesVsStock(limit));
     }
 }

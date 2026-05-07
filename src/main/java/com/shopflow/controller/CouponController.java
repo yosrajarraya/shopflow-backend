@@ -14,8 +14,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+//recoit les requete http
 @RestController
+//pour definir le chemin
 @RequestMapping("/api/coupons")
 @RequiredArgsConstructor
 @Tag(name = "Coupons", description = "Gestion des codes promotionnels")
